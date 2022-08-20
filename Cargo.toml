@@ -1,4 +1,5 @@
-workspace = [
+[workspace]
+members = [
     "rust-ecs",
     "rust-vk",
     "rust-win",

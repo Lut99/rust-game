@@ -5,15 +5,15 @@ A wrapper crate around ash (and others) that provides a slightly more high-level
 ## Installation
 To use this crate in one of your projects, simply add:
 ```toml
-rust-vk = { git = "https://github.com/Lut99/rust-vk" }
+rust-vk = { git = "https://github.com/Lut99/rust-game" }
 ```
 to your `Cargo.toml` file.
 
 Optionally, you can select a specific version by adding:
 ```toml
-rust-vk = { git = "https://github.com/Lut99/rust-vk", tag = "<VERSION>" }
+rust-vk = { git = "https://github.com/Lut99/rust-game", tag = "<TAG>" }
 ```
-where `<VERSION>` is the required version number.
+where `<TAG>` is the desired version number of the `rust-game` repository.
 
 Note that this crate uses semantic versioning. That means that any breaking change will always be reflected in the major version number.
 
@@ -31,4 +31,4 @@ You can then browse the documentation at your leisure.
 
 
 ## Contributing
-If you like to contribute to this library or have any suggestions / bugs to report, leave an issue over at the [issues](https://github.com/Lut99/rust-vk/issues) page. Please tag them appropriate if you want the quickest support.
+If you like to contribute to this library or have any suggestions / bugs to report, leave an issue over at the [issues](https://github.com/Lut99/rust-game/issues) page. Please tag them appropriate if you want the quickest support.
