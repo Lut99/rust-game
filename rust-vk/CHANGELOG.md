@@ -11,6 +11,7 @@ This file will maintain a list of changes per release of the rust-vk crate.
 - Staging buffer not being properly aligned for mapping memory.
 - Certain debug statements in `pools/memory/pools.rs` to use `debug!` instead of `println!`.
 - `PipelineBuilder::build()` not returning errors if they occurred previously in the pipeline.
+- Buffers being drawn with incorrect indices (causing out-of-bounds errors).
 
 
 ## [4.0.2] - 2022-08-13
