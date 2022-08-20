@@ -23,3 +23,7 @@ winapi = { version = "0.3.5", features = ["windef", "libloaderapi"] }
 metal = "0.24.0"
 cocoa = "0.18.4"
 objc  = "0.2.5"
+
+
+[dev-dependencies]
+simplelog = { version = "0.11.2" }
