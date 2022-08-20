@@ -1,0 +1,5 @@
+workspace = [
+    "rust-ecs",
+    "rust-vk",
+    "rust-win",
+]

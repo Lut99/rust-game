@@ -1,0 +1,10 @@
+[package]
+name = "rust-ecs"
+version = "1.0.1"
+edition = "2021"
+authors = [ "Lut99" ]
+description = "A (simple) Entity Component System in Rust that may be used for multiple projects."
+
+[dependencies]
+log = { version = "0.4.16", optional = true }
+parking_lot = "0.12.1"
