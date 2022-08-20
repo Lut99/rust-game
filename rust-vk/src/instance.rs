@@ -4,7 +4,7 @@
 //  Created:
 //    26 Mar 2022, 14:10:40
 //  Last edited:
-//    06 Aug 2022, 11:36:30
+//    20 Aug 2022, 12:57:34
 //  Auto updated?
 //    Yes
 // 
@@ -105,9 +105,10 @@ fn populate_app_info<'a>(name: &'a CStr, version: Version, engine: &'a CStr, eng
 
 /// Populates a DebugUtilsMessengerCreateInfoEXT struct.
 /// 
-/// This function sets 'vulkan_debug_callback' as the callback for the debug create info.
+/// # Arguments
+/// - `debug_callback`: The function to call when a Vulkan debug callback message occurs.
 #[inline]
-fn populate_debug_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
+fn populate_debug_info(debug_callback: DebugCallbackFn) -> vk::DebugUtilsMessengerCreateInfoEXT {
     vk::DebugUtilsMessengerCreateInfoEXT {
         s_type : vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
         p_next : ptr::null(),
@@ -122,7 +123,7 @@ fn populate_debug_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
             vk::DebugUtilsMessageTypeFlagsEXT::GENERAL |
             vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE |
             vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
-        pfn_user_callback : Some(vulkan_debug_callback),
+        pfn_user_callback : Some(debug_callback),
         p_user_data       : ptr::null_mut(),
     }
 }
@@ -245,7 +246,7 @@ fn populate_instance_info(entry: &ash::Entry, app_info: &vk::ApplicationInfo, de
 
 
 /***** CALLBACKS *****/
-/// Callback for the Vulkan debug messenger.
+/// Default callback for the Vulkan debug messenger.
 /// 
 /// This function takes the message reported by Vulkan, and passes it to the appropriate macro from the log crate.
 /// 
@@ -285,6 +286,11 @@ unsafe extern "system" fn vulkan_debug_callback(
 
 
 /***** LIBRARY *****/
+/// Shortcut for the type of debug callbacks
+pub type DebugCallbackFn = unsafe extern "system" fn(vk::DebugUtilsMessageSeverityFlagsEXT, vk::DebugUtilsMessageTypeFlagsEXT, *const vk::DebugUtilsMessengerCallbackDataEXT, *mut std::ffi::c_void) -> u32;
+
+
+
 /// Represents the Instance in the wrapper, which is the application-global instantiation of Vulkan and other libraries.
 pub struct Instance {
     /// The ash entry, that determines how we link to the underlying Vulkan library
@@ -315,7 +321,30 @@ impl Instance {
     /// 
     /// # Returns
     /// The new Instance instance on success, or else an Error describing why we failed to create it.
+    #[inline]
     pub fn new<'a, 'b, S1: AsRef<str>, S2: AsRef<str>>(name: S1, version: Version, engine: S2, engine_version: Version, additional_extensions: &[&'a str], additional_layers: &[&'b str]) -> Result<Rc<Self>, Error> {
+        Self::new_with_debug_callback(name, version, engine, engine_version, additional_extensions, additional_layers, vulkan_debug_callback)
+    }
+
+    /// Constructor for the Instance.
+    /// 
+    /// Every Vulkan app needs its own Instance of the driver, which is what this class represents. There should thus be only one of these.
+    /// 
+    /// # Generic arguments
+    /// - `S1`: The &str-like type of the application's name.
+    /// - `S2`: The &str-like type of the application's engine's name.
+    /// 
+    /// # Arguments
+    /// - `name`: The name of the application to register in the Vulkan driver.
+    /// - `version`: The version of the application to register in the Vulkan driver.
+    /// - `engine_name`: The name of the application's engine to register in the Vulkan driver.
+    /// - `engine_version`: The version of the application's engine to register in the Vulkan driver.
+    /// - `additional_extensions`: A slice of additional extensions to enable in the application-global instance.
+    /// - `additional_layers`: A slice of additional validation layers to enable in the application-global instance.
+    /// 
+    /// # Returns
+    /// The new Instance instance on success, or else an Error describing why we failed to create it.
+    pub fn new_with_debug_callback<'a, 'b, S1: AsRef<str>, S2: AsRef<str>>(name: S1, version: Version, engine: S2, engine_version: Version, additional_extensions: &[&'a str], additional_layers: &[&'b str], debug_callback: DebugCallbackFn) -> Result<Rc<Self>, Error> {
         // Convert the str-like into &str
         let name: &str   = name.as_ref();
         let engine: &str = engine.as_ref();
@@ -363,7 +392,7 @@ impl Instance {
 
         // If required, instantiate the DebugInfo
         let debug_info: Option<vk::DebugUtilsMessengerCreateInfoEXT> = if debug {
-            Some(populate_debug_info())
+            Some(populate_debug_info(debug_callback))
         } else {
             None
         };
