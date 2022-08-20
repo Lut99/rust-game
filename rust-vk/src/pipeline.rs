@@ -4,7 +4,7 @@
 //  Created:
 //    23 Apr 2022, 17:26:39
 //  Last edited:
-//    06 Aug 2022, 11:36:42
+//    20 Aug 2022, 13:47:46
 //  Auto updated?
 //    Yes
 // 
@@ -709,6 +709,8 @@ impl PipelineBuilder {
     /// # Errors
     /// This function returns an error if the backend Vulkan driver errors while creating the pipeline, or if an error occurred during any of the other functions.
     pub fn build(&mut self, device: Rc<Device>, layout: Rc<PipelineLayout>, render_pass: Rc<RenderPass>) -> Result<Rc<Pipeline>, Error> {
+        if let Some(err) = self.error.take() { return Err(err); }
+
         let Self { ref base_pipeline, ref shaders, ref vertex_input, ref vertex_assembly, ref viewport, ref rasterization, ref multisampling, ref depth_testing, ref colour_blending, .. } = self;
 
         // First, cast the stages and shaders to VkShaderStageFlags and VkShaderModules

@@ -2,6 +2,17 @@
 This file will maintain a list of changes per release of the rust-vk crate.
 
 
+## [4.1.0] - 2022-08-20
+### Added
+- Constructor for `Instance` that accepts a custom debug callback (useful in tests where errors should cause panics).
+- Tests for mapping staging buffers in `pools/memory/buffers.rs`.
+
+### Fixed
+- Staging buffer not being properly aligned for mapping memory.
+- Certain debug statements in `pools/memory/pools.rs` to use `debug!` instead of `println!`.
+- `PipelineBuilder::build()` not returning errors if they occurred previously in the pipeline.
+
+
 ## [4.0.2] - 2022-08-13
 ### Changed
 - Moved the crate in to the `rust-game` repository to resolve endlessly updating dependencies.
