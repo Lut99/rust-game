@@ -4,7 +4,7 @@
 //  Created:
 //    25 Jun 2022, 18:04:08
 //  Last edited:
-//    06 Aug 2022, 12:07:52
+//    20 Aug 2022, 13:32:44
 //  Auto updated?
 //    Yes
 // 
@@ -18,7 +18,7 @@ use std::slice;
 
 use ash::vk;
 
-use crate::warn;
+use crate::{debug, warn};
 pub use crate::pools::errors::MemoryPoolError as Error;
 use crate::auxillary::flags::{DeviceMemoryType, MemoryPropertyFlags};
 use crate::auxillary::structs::MemoryRequirements;
@@ -605,7 +605,7 @@ impl MemoryPool for BlockPool {
 
         // Update the size and we're done
         self.size += new_used.1;
-        println!("Blocks after allocate:\n - Used: {:?}\n - Free: {:?}", self.used, self.free);
+        debug!("Blocks after allocate:\n - Used: {:?}\n - Free: {:?}", self.used, self.free);
         Ok((self.block.vk(), new_used.0))
     }
 
@@ -640,7 +640,7 @@ impl MemoryPool for BlockPool {
 
         // Update the size, done
         self.size -= new_free.1;
-        println!("Blocks after free:\n - Used: {:?}\n - Free: {:?}", self.used, self.free);
+        debug!("Blocks after free:\n - Used: {:?}\n - Free: {:?}", self.used, self.free);
     }
 
     /// Resets the memory pool back to its initial, empty state.
