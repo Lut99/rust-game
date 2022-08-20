@@ -4,7 +4,7 @@
 //  Created:
 //    25 Jun 2022, 16:17:19
 //  Last edited:
-//    13 Aug 2022, 12:45:02
+//    20 Aug 2022, 13:31:27
 //  Auto updated?
 //    Yes
 // 
@@ -26,6 +26,131 @@ use crate::auxillary::structs::MemoryRequirements;
 use crate::device::Device;
 
 use super::spec::{Buffer, GpuPtr, HostBuffer, LocalBuffer, MemoryPool, TransferBuffer, Vertex};
+
+
+/***** TESTS *****/
+#[cfg(test)]
+mod tests {
+    use std::ffi::CStr;
+
+    #[cfg(feature = "log")]
+    use log::LevelFilter;
+    #[cfg(feature = "log")]
+    use simplelog::{ColorChoice, TerminalMode, TermLogger};
+
+    use crate::auxillary::enums::InstanceLayer;
+    use crate::auxillary::structs::DeviceFeatures;
+    use crate::instance::Instance;
+    use crate::device::Device;
+    // use crate::pools::command::Pool as CommandPool;
+    use crate::pools::memory::MetaPool;
+
+    use semver::Version;
+
+    use super::*;
+
+
+    /// The instance extensions to use for the tests
+    const INSTANCE_EXTENSIONS: &[&'static str] = &[];
+    /// The instance layers to use for the tests
+    const INSTANCE_LAYERS: &[&'static str]     = &[ InstanceLayer::KhronosValidation.as_str() ];
+    /// The device extensions to use for the tests
+    const DEVICE_EXTENSIONS: &[&'static str]   = &[];
+    /// The device layers to use for the tests
+    const DEVICE_LAYERS: &[&'static str]       = &[];
+    /// The device layers to use for the tests
+    const DEVICE_FEATURES: DeviceFeatures      = DeviceFeatures::cdefault();
+
+
+    /// Helper function that implements an alternative Vulkan callback for the tests.
+    unsafe extern "system" fn test_callback(
+        message_severity : vk::DebugUtilsMessageSeverityFlagsEXT,
+        message_type     : vk::DebugUtilsMessageTypeFlagsEXT,
+        p_callback_data  : *const vk::DebugUtilsMessengerCallbackDataEXT,
+        _p_user_data     : *mut std::os::raw::c_void,
+    ) -> vk::Bool32 {
+        // Match the message type
+        #[allow(unused_variables)]
+        let kind = match message_type {
+            vk::DebugUtilsMessageTypeFlagsEXT::GENERAL     => "[General]",
+            vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "[Performance]",
+            vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION  => "[Validation]",
+            _                                              => "[Unknown]",
+        };
+    
+        // Send the message with the proper log macro
+        #[allow(unused_variables)]
+        let message = CStr::from_ptr((*p_callback_data).p_message);
+        match message_severity {
+            vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => println!("[DEBUG] [Vulkan] {} {:?}", kind, message),
+            vk::DebugUtilsMessageSeverityFlagsEXT::INFO    => println!("[INFO] [Vulkan] {} {:?}", kind, message),
+            vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => println!("[WARNING] [Vulkan] {} {:?}", kind, message),
+            vk::DebugUtilsMessageSeverityFlagsEXT::ERROR   => panic!("[ERROR] [Vulkan] {} {:?}", kind, message),
+            _                                              => println!("[UNKNOWN] [Vulkan] {} {:?}", kind, message),
+        }
+    
+        // Done
+        vk::FALSE
+    }
+
+    
+    /// Tests if mapping works successfully (and does not cause debug errors).
+    #[test]
+    fn test_mapping() {
+        #[cfg(feature = "log")]
+        {
+            // Create the logger
+            if let Err(err) = TermLogger::init(LevelFilter::Debug, Default::default(), TerminalMode::Mixed, ColorChoice::Auto) {
+               eprintln!("Could not load initialize loggers: {}", err);
+            }
+        }
+
+        // Create the instance & and a device
+        let instance = Instance::new_with_debug_callback(
+            format!("{}_test_mapping", file!()),
+            Version::parse(env!("CARGO_PKG_VERSION")).expect("Could not parse CARGO version"),
+            format!("{}_test_mapping_engine", file!()),
+            Version::parse(env!("CARGO_PKG_VERSION")).expect("Could not parse CARGO version"),
+            INSTANCE_EXTENSIONS,
+            INSTANCE_LAYERS,
+            test_callback,
+        ).unwrap_or_else(|err| panic!("Failed to initialize Instance: {}", err));
+        let device = Device::new(
+            instance.clone(),
+            Device::auto_select(
+                instance.clone(),
+                &DEVICE_EXTENSIONS,
+                &DEVICE_LAYERS,
+                &DEVICE_FEATURES,
+            ).expect("Could not find a suitable GPU for tests"),
+            &DEVICE_EXTENSIONS,
+            &DEVICE_LAYERS,
+            &DEVICE_FEATURES,
+        ).unwrap_or_else(|err| panic!("Failed to initialize Device: {}", err));
+
+        // Allocate a command pool and a normal pool
+        // let cpool = CommandPool::new(device.clone()).unwrap_or_else(|err| panic!("Failed to initialize CommandPool: {}", err));
+        let mpool = MetaPool::new(device.clone(), 2048);
+
+        // Now create a staging buffer and map it
+        {
+            let sbuf = StagingBuffer::new(device.clone(), mpool.clone(), 80).unwrap_or_else(|err| panic!("Failed to allocate new StagingBuffer: {}", err));
+            let mapped = sbuf.map().unwrap_or_else(|err| panic!("Failed to map memory: {}", err));
+            mapped.as_slice_mut::<u32>(80 / 4).clone_from_slice(&[42; 80 / 4]);
+            mapped.flush().unwrap_or_else(|err| panic!("Failed to flush mapped memory: {}", err));
+        }
+        // Do it again
+        {
+            let sbuf = StagingBuffer::new(device.clone(), mpool.clone(), 24).unwrap_or_else(|err| panic!("Failed to allocate new StagingBuffer: {}", err));
+            let mapped = sbuf.map().unwrap_or_else(|err| panic!("Failed to map memory: {}", err));
+            mapped.as_slice_mut::<u32>(24 / 4).clone_from_slice(&[42; 24 / 4]);
+            mapped.flush().unwrap_or_else(|err| panic!("Failed to flush mapped memory: {}", err));
+        }
+    }
+}
+
+
+
 
 
 /***** POPULATE FUNCTIONS *****/
@@ -63,6 +188,14 @@ fn populate_buffer_info(usage_flags: vk::BufferUsageFlags, sharing_mode: vk::Sha
 
 /***** HELPER FUNCTIONS *****/
 /// Creates & allocates a new vk::Buffer object.
+/// 
+/// # Arguments
+/// - `device`: The Device to allocate the buffer object itself on.
+/// - `pool`: The pool to allocate the buffer's memory in.
+/// - 'usage_flags`: The usage flags for this Buffer (will determine its memory requirements).
+/// - `sharing_mode`: The SharingMode for this buffer.
+/// - `mem_props`: The additional memory properties that this Buffer should adhere to.
+/// - `capacity`: The capacity of this Buffer, in bytes.
 fn create_buffer(device: &Rc<Device>, pool: &Rc<RefCell<dyn MemoryPool>>, usage_flags: BufferUsageFlags, sharing_mode: &SharingMode, mem_props: MemoryPropertyFlags, capacity: usize) -> Result<(vk::Buffer, vk::DeviceMemory, GpuPtr, MemoryRequirements), Error> {
     // Split the sharing mode
     let (vk_sharing_mode, vk_queue_family_indices) = sharing_mode.clone().into();
@@ -83,7 +216,16 @@ fn create_buffer(device: &Rc<Device>, pool: &Rc<RefCell<dyn MemoryPool>>, usage_
     };
 
     // Get the buffer memory type requirements
-    let requirements: MemoryRequirements = unsafe { device.get_buffer_memory_requirements(buffer) }.into();
+    let mut requirements: MemoryRequirements = unsafe { device.get_buffer_memory_requirements(buffer) }.into();
+    // Pad the alignment to a shared multiple of the alignment _and_ the device's coherent size if this is a HostBuffer.
+    if mem_props.check(MemoryPropertyFlags::HOST_VISIBLE) {
+        let non_coherent_atom_size: u64 = device.get_physical_device_props().limits.non_coherent_atom_size as u64;
+        if requirements.align < non_coherent_atom_size && non_coherent_atom_size % requirements.align == 0 {
+            requirements.align = non_coherent_atom_size;
+        } else if !(requirements.align > non_coherent_atom_size && requirements.align % non_coherent_atom_size == 0) {
+            requirements.align *= non_coherent_atom_size;
+        }
+    }
 
     // Allocate the memory in the pool
     let (memory, pointer): (vk::DeviceMemory, GpuPtr) = {
