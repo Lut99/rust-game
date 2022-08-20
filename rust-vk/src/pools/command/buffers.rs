@@ -4,7 +4,7 @@
 //  Created:
 //    05 May 2022, 10:45:36
 //  Last edited:
-//    13 Aug 2022, 12:34:22
+//    20 Aug 2022, 14:39:22
 //  Auto updated?
 //    Yes
 // 
@@ -290,7 +290,7 @@ impl CommandBuffer {
     pub fn bind_vertex_buffers(&self, index: usize, vertex_buffers: &[&Rc<VertexBuffer>]) {
         // Extract the required properties into two arrays
         let buffers: Vec<vk::Buffer>     = vertex_buffers.iter().map(|b| b.vk()).collect();
-        let offsets: Vec<vk::DeviceSize> = vertex_buffers.iter().map(|b| b.vk_offset()).collect();
+        let offsets: Vec<vk::DeviceSize> = vertex_buffers.iter().map(|_| 0).collect();
 
         // Call the function
         unsafe {
@@ -306,7 +306,7 @@ impl CommandBuffer {
     pub fn bind_index_buffer(&self, index_buffer: &Rc<IndexBuffer>) {
         // Call the function
         unsafe {
-            self.device.cmd_bind_index_buffer(self.buffer, index_buffer.vk(), index_buffer.vk_offset(), index_buffer.index_type().into());
+            self.device.cmd_bind_index_buffer(self.buffer, index_buffer.vk(), 0, index_buffer.index_type().into());
         }
     }
 
